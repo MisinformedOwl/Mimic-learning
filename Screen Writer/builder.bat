@@ -1,0 +1,1 @@
+gcc your_program.c -o your_program.exe -lgdi32
