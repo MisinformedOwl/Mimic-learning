@@ -43,6 +43,16 @@ class CNNModel(nn.Module):
         x = F.relu(self.lin4(x))
         x = F.relu(self.lin5(x))
         x = F.relu(self.lin6(x))
+        x = F.relu(self.lin7(x))
+        
+        return x
 
     def displayCNN(self, x):
         viz(x, params=dict(list(self.named_parameters()))).render("cnn_viz", format="png")
+
+model = CNNModel()
+t = torch.rand(512,512,1)
+t = t.permute(2,0,1)
+y = model(t)
+
+viz(y, params=dict(model.named_parameters())).render("cnn_viz", format="png")
