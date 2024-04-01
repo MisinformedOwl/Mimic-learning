@@ -1,4 +1,7 @@
 #include <windows.h>
+#include <conio.h>
+#include <ctype.h>
+#include <stdio.h>
 
 int main() {
     // Get the device context for the entire screen
@@ -10,9 +13,18 @@ int main() {
     // Create a red solid brush
     HBRUSH hBrush = CreateSolidBrush(RGB(255, 0, 0));
 
-    for(int x=0;x<10000;x++){
-    // Draw a red rectangle outline
-    FrameRect(hdcScreen, &rect, hBrush);
+    // Predefine variable for checking if correct cahracter is pressed.
+    char c;
+    while(1){
+    	if (kbhit()){
+    		c = tolower(getch());
+    		printf("%c", c);
+    		if(c == 'q'){
+    			break;
+    		}
+    	}
+		// Draw a red rectangle outline
+		FrameRect(hdcScreen, &rect, hBrush);
     }
 
     // Release the device context

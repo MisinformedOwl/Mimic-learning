@@ -1,1 +1,1 @@
-gcc your_program.c -o your_program.exe -lgdi32
+gcc ScreenWriter.c -o "Screen Writer.exe" -lgdi32
