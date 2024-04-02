@@ -3,12 +3,22 @@
 #include <ctype.h>
 #include <stdio.h>
 
-int main() {
+int main(int argc, char* argv[]) {
+	for (int i = 0; i < argc; i++){
+		printf("%s\n", argv[i]);
+	}
+
     // Get the device context for the entire screen
     HDC hdcScreen = GetDC(NULL);
 
+    // Convert to integer
+    int x1 = atoi(argv[1]);
+    int y1 = atoi(argv[2]);
+    int x2 = atoi(argv[3]);
+    int y2 = atoi(argv[4]);
+
     // Define the coordinates of the rectangle
-    RECT rect = {100, 100, 200, 200};
+    RECT rect = {x1,y1,x2,y2};
 
     // Create a red solid brush
     HBRUSH hBrush = CreateSolidBrush(RGB(255, 0, 0));
