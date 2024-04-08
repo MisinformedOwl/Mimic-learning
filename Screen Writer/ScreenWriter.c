@@ -2,8 +2,16 @@
 #include <conio.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <signal.h>
+
+void signal_handler(int, signal){
+	if (signal==SIGTERM) {
+		exit(0);
+	}
+}
 
 int main(int argc, char* argv[]) {
+	signal(SIGTERM, signal_handler);
 	for (int i = 0; i < argc; i++){
 		printf("%s\n", argv[i]);
 	}

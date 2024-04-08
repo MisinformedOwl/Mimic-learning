@@ -10,8 +10,13 @@ We call nn.Module to make use of torch's pre built features and backprop.
 '''
 class CNNModel(nn.Module):
     
+    training = True
+    history = []
+    criterion = nn.MSELoss()
     def __init__(self):
         super().__init__()
+        self.optimizer = optim.Adam(self.parameters(), lr = 0.01, momentum=0.9) #It is unable to see parameters therefore must be established here.
+        
         '''
         We begin with 512 as it's not too small to not capture detail. However 
         it is also not big enough to cause issues in memory.
@@ -63,7 +68,42 @@ class CNNModel(nn.Module):
     '''
     def displayCNN(self, x):
         viz(x, params=dict(list(self.named_parameters()))).render("cnn_viz", format="png")
-
+        
+    def train(self, trainloader, epochs):
+        self.switchTrainingMode(True)
+        for epoch in epochs:
+            runningloss = 0
+            for image, labels in trainloader:
+                self.optimizer.zero_grad
+                y_pred = self(image)
+                loss = self.criterion(y_pred, labels)
+                self.optimizer.step()
+                runningloss += loss.item()
+        runningloss/=epochs
+        return runningloss
+    
+    def switchTrainingMode(self, setting):
+        if setting == True:
+            self.training = True
+            self.train()
+        else:
+            self.training = False
+            self.eval()
+    
+    def isTraining(self):
+        return self.training
+    
+    def test(self, testloader):
+        self.switchTrainingMode(False)
+        runningloss = 0
+        for image, labels in testloader:
+            self.optimizer.zero_grad
+            y_pred = self(image)
+            loss = self.criterion(y_pred, labels)
+            self.optimizer.step()
+            runningloss += loss.item()
+        return runningloss
+    
 model = CNNModel()
 t = torch.rand(512,512,1)
 t = t.permute(2,0,1)
