@@ -1,8 +1,12 @@
 import torch                            #Torch is the framework we will be using to create this neural network.
 import torch.nn.functional as F         #Activation functions
+from torch.utils.data import DataLoader #Dataloaders used in batching data.
 from torch import optim, nn             #Imports for optimsers and neural network layers such as linear.
 import graphviz                         # Imported as it's needed to be used with torchviz apparently.
 from torchviz import make_dot as viz    #Library used to create an image of the current neural network.
+import pickle
+import glob
+import os
 
 '''
 CNNModel class will hold the CNN.
@@ -15,8 +19,6 @@ class CNNModel(nn.Module):
     criterion = nn.MSELoss()
     def __init__(self):
         super().__init__()
-        self.optimizer = optim.Adam(self.parameters(), lr = 0.01, momentum=0.9) #It is unable to see parameters therefore must be established here.
-        
         '''
         We begin with 512 as it's not too small to not capture detail. However 
         it is also not big enough to cause issues in memory.
@@ -36,6 +38,8 @@ class CNNModel(nn.Module):
         self.lin5 = nn.Linear(32, 16)
         self.lin6 = nn.Linear(16, 8)
         self.lin7 = nn.Linear(8, 2)
+        
+        self.optimizer = optim.Adam(self.parameters(), lr = 0.01) #It is unable to see parameters therefore must be established here.
         
     '''
     This function is what is activated when actually training/testing the AI.
@@ -68,7 +72,29 @@ class CNNModel(nn.Module):
     '''
     def displayCNN(self, x):
         viz(x, params=dict(list(self.named_parameters()))).render("cnn_viz", format="png")
+    
+    '''
+    Grabs the data from file and puts it into a dataloader for use in the model.
+    '''
+    def grabData(self):
+        name = input("Name of the application being used: ")
+        self.location = f"data/{name}"
+        if not os.path.isdir(self.location):
+            raise FileNotFoundError
+                
+        images = glob.glob(f"{self.location}/*.png")
+        with open(f"{self.location}/inputs.pkl", "rb") as file:
+            inputs = pickle.load(file)
+        return DataLoader([images, inputs], batch_size=4, shuffle=False)
         
+    '''
+    Train function used for training the model.
+    
+    Main difference is the model is set to train mode.
+    
+    [Look into encapsulating this for less remaking of code. Is optimizer zero 
+    grad required.]
+    '''
     def train(self, trainloader, epochs):
         self.switchTrainingMode(True)
         for epoch in epochs:
@@ -82,6 +108,9 @@ class CNNModel(nn.Module):
         runningloss/=epochs
         return runningloss
     
+    '''
+    Sitches the training mode of the model.
+    '''
     def switchTrainingMode(self, setting):
         if setting == True:
             self.training = True
@@ -90,9 +119,16 @@ class CNNModel(nn.Module):
             self.training = False
             self.eval()
     
+    '''
+    Checks to see if the model is currently training.
+    No idea what i'm actually going to use this for yet, might get removed. Fels like a good idea at the time.
+    '''
     def isTraining(self):
         return self.training
     
+    '''
+    Used to test the model. Similar to train function. Might change.
+    '''
     def test(self, testloader):
         self.switchTrainingMode(False)
         runningloss = 0
@@ -103,10 +139,3 @@ class CNNModel(nn.Module):
             self.optimizer.step()
             runningloss += loss.item()
         return runningloss
-    
-model = CNNModel()
-t = torch.rand(512,512,1)
-t = t.permute(2,0,1)
-y = model(t)
-
-viz(y, params=dict(model.named_parameters())).render("cnn_viz", format="png")
