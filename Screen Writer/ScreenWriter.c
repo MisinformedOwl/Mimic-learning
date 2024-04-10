@@ -34,6 +34,7 @@ int main(int argc, char* argv[]) {
     // Predefine variable for checking if correct cahracter is pressed.
     char c;
     while(1){
+    	sleep(200);
     	if (kbhit()){
     		c = tolower(getch());
     		printf("%c", c);

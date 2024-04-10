@@ -36,7 +36,7 @@ class ScreenCollection():
     def __init__(self):
         self.setFileLocation()
         print("Please select where you want to capture")
-        self.boxlistener = iput.mouse.Listener(on_click=self.getBoxLocation)
+        self.boxlistener = iput.mouse.Listener(on_click=self.getBoxLocation) # fix this trash[]
         self.boxlistener.start()
         self.boxlistener.join()
         self.setBoxArea()
@@ -143,7 +143,7 @@ class ScreenCollection():
                     image = sct.grab(self.areagrab)
                     ms.tools.to_png(image.rgb, image.size, output=f"{self.filelocation}\{self.imageNumber}.png")
                     self.imageNumber+=1
-                self.inputs.append(button)
+                self.inputs.append([(x,y),button])
 
     '''
     Checks to see if click is within the predetermined area before taking a 
