@@ -7,14 +7,13 @@ from torchviz import make_dot as viz    #Library used to create an image of the 
 import pickle
 import glob
 import os
+from cv2 import imread
 
 '''
 CNNModel class will hold the CNN.
 We call nn.Module to make use of torch's pre built features and backprop.
 '''
 class CNNModel(nn.Module):
-    
-    training = True
     history = []
     criterion = nn.MSELoss()
     def __init__(self):
@@ -76,17 +75,26 @@ class CNNModel(nn.Module):
     '''
     Grabs the data from file and puts it into a dataloader for use in the model.
     '''
-    def grabData(self):
+    def grabData(self, resize=False):
         name = input("Name of the application being used: ")
         self.location = f"data/{name}"
         if not os.path.isdir(self.location):
             raise FileNotFoundError
-                
+        #Grabbing images.
         images = glob.glob(f"{self.location}/*.png")
+        
+        
+        #Grabbing user inputs and locations.
         with open(f"{self.location}/inputs.pkl", "rb") as file:
             inputs = pickle.load(file)
-        return DataLoader([images, inputs], batch_size=4, shuffle=False)
+            print(inputs)
         
+        data = []
+        for image, i in zip(images, inputs):
+            data.append([torch.tensor(imread(image), dtype=torch.float), i])
+        
+        return DataLoader(data, batch_size=4, shuffle=False)
+
     '''
     Train function used for training the model.
     
@@ -95,11 +103,13 @@ class CNNModel(nn.Module):
     [Look into encapsulating this for less remaking of code. Is optimizer zero 
     grad required.]
     '''
-    def train(self, trainloader, epochs):
-        self.switchTrainingMode(True)
-        for epoch in epochs:
+    def learn(self, epochs):
+        trainloader = self.grabData()
+        self.train()
+        for epoch in range(epochs):
             runningloss = 0
             for image, labels in trainloader:
+                labels = labels[0]
                 self.optimizer.zero_grad
                 y_pred = self(image)
                 loss = self.criterion(y_pred, labels)
@@ -107,17 +117,6 @@ class CNNModel(nn.Module):
                 runningloss += loss.item()
         runningloss/=epochs
         return runningloss
-    
-    '''
-    Sitches the training mode of the model.
-    '''
-    def switchTrainingMode(self, setting):
-        if setting == True:
-            self.training = True
-            self.train()
-        else:
-            self.training = False
-            self.eval()
     
     '''
     Checks to see if the model is currently training.
@@ -129,10 +128,11 @@ class CNNModel(nn.Module):
     '''
     Used to test the model. Similar to train function. Might change.
     '''
-    def test(self, testloader):
-        self.switchTrainingMode(False)
+    def accuracy(self):
+        loader = self.grabData()
+        self.test()
         runningloss = 0
-        for image, labels in testloader:
+        for image, labels in loader:
             self.optimizer.zero_grad
             y_pred = self(image)
             loss = self.criterion(y_pred, labels)

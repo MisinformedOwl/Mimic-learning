@@ -26,6 +26,7 @@ class ScreenCollection():
     imageNumber = 0     #Used to count the number of images created for use in image name generation.
     inputs = []         #The variable used to store inputs
     ended = False       #Global flag to cease all listeners
+    downsize = False    #Flag to switch mode to reduce image size
     
     '''
     Initalise function
@@ -137,13 +138,16 @@ class ScreenCollection():
             return
         if self.ended:
             return False
-        if button == Button.left:
-            if self.withinArea(x,y):
-                with mss() as sct:
-                    image = sct.grab(self.areagrab)
-                    ms.tools.to_png(image.rgb, image.size, output=f"{self.filelocation}\{self.imageNumber}.png")
-                    self.imageNumber+=1
-                self.inputs.append([(x,y),button])
+        if self.withinArea(x,y):
+            with mss() as sct:
+                image = sct.grab(self.areagrab)
+                ms.tools.to_png(image.rgb, image.size, output=f"{self.filelocation}\{self.imageNumber}.png")
+                self.imageNumber+=1
+            
+            if button == Button.left:
+                self.inputs.append([[x,y],"left"])
+            elif button == Button.right:
+                self.inputs.append([[x,y],"right"])
 
     '''
     Checks to see if click is within the predetermined area before taking a 
