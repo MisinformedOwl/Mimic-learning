@@ -7,6 +7,7 @@ from torchviz import make_dot as viz    #Library used to create an image of the 
 import pickle
 import glob
 import os
+import numpy as np
 from cv2 import imread
 
 '''
@@ -22,7 +23,7 @@ class CNNModel(nn.Module):
         We begin with 512 as it's not too small to not capture detail. However 
         it is also not big enough to cause issues in memory.
         '''
-        self.layer1 = nn.Conv2d(1, 3, kernel_size=3) # Collecting image of [512,512,1] and colecting featuresto create a matrix of [512,512,3]
+        self.layer1 = nn.Conv2d(3, 3, kernel_size=3) # Collecting image of [512,512,1] and colecting featuresto create a matrix of [512,512,3]
         self.layer2 = nn.MaxPool2d(2,2)              #Maxpool halves the size of the image. Image is now [256,256,3]
         self.layer3 = nn.Conv2d(3, 3, kernel_size=3) #[256,256,3]->[256,256,3]
         self.layer4 = nn.MaxPool2d(2,2)              #[256,256,3]->[128,128,3]
@@ -30,7 +31,7 @@ class CNNModel(nn.Module):
         
         self.flatten = nn.Flatten()                  #128 x 128 x 1 = 
         
-        self.lin1 = nn.Linear(15376, 256)            #124x124x1 = 15,376
+        self.lin1 = nn.Linear(14400, 256)            #124x124x1 = 15,376
         self.lin2 = nn.Linear(256, 128)
         self.lin3 = nn.Linear(128, 64)               #Gradually reduce neurons until we reach 2, the cordinates.
         self.lin4 = nn.Linear(64, 32)
@@ -87,11 +88,10 @@ class CNNModel(nn.Module):
         #Grabbing user inputs and locations.
         with open(f"{self.location}/inputs.pkl", "rb") as file:
             inputs = pickle.load(file)
-            print(inputs)
         
         data = []
         for image, i in zip(images, inputs):
-            data.append([torch.tensor(imread(image), dtype=torch.float), i])
+            data.append([torch.tensor(np.transpose(imread(image), (2,0,1)), dtype=torch.float), torch.tensor(i[0]), i[1]])
         
         return DataLoader(data, batch_size=4, shuffle=False)
 
@@ -108,11 +108,10 @@ class CNNModel(nn.Module):
         self.train()
         for epoch in range(epochs):
             runningloss = 0
-            for image, labels in trainloader:
-                labels = labels[0]
+            for image, cords, button in trainloader:
                 self.optimizer.zero_grad
                 y_pred = self(image)
-                loss = self.criterion(y_pred, labels)
+                loss = self.criterion(y_pred, cords)
                 self.optimizer.step()
                 runningloss += loss.item()
         runningloss/=epochs
@@ -132,10 +131,10 @@ class CNNModel(nn.Module):
         loader = self.grabData()
         self.test()
         runningloss = 0
-        for image, labels in loader:
+        for image, cords, button in loader:
             self.optimizer.zero_grad
             y_pred = self(image)
-            loss = self.criterion(y_pred, labels)
+            loss = self.criterion(y_pred, cords)
             self.optimizer.step()
             runningloss += loss.item()
         return runningloss

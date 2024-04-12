@@ -34,7 +34,7 @@ class ScreenCollection():
     Responcible for starting up the application by establishing box location as
     well as naming the data file among other responcibilities.
     '''
-    def __init__(self):
+    def __init__(self, gpu=True):
         self.setFileLocation()
         print("Please select where you want to capture")
         self.boxlistener = iput.mouse.Listener(on_click=self.getBoxLocation) # fix this trash[]
