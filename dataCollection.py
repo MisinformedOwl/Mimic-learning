@@ -27,6 +27,7 @@ class ScreenCollection():
     inputs = []         #The variable used to store inputs
     ended = False       #Global flag to cease all listeners
     downsize = False    #Flag to switch mode to reduce image size
+    width, height = 0,0 #The width and height of the iamge, used in data normalization.
     
     '''
     Initalise function
@@ -89,14 +90,16 @@ class ScreenCollection():
             self.area.append(x)
             self.area.append(y)
         if len(self.area) == 4: # If 2 sets of cordinates are captured, stop the listener and continue program.
+            self.width = self.area[2] - self.area[0]
+            self.height = self.area[3] - self.area[1]
             self.boxlistener.stop()
-    
+
     '''
     This function is used to neatly flatten the area array into 4 variables.
     Also transforms them into strings for use in console applications like 
     drawBox
     '''
-    def areaunpack(self):
+    def areaUnpack(self):
         return [str(a) for a in self.area]
     
     '''
@@ -109,12 +112,11 @@ class ScreenCollection():
     with ctrl + c will end the process.
     '''
     def drawBox(self):
-        x1,y1,x2,y2 = self.areaunpack()
+        x1,y1,x2,y2 = self.areaUnpack()
         self.process = Popen(['Screen Writer\Screen Writer.exe', x1, y1, x2, y2], shell = False)
         self.process.wait()
         print("drawer ended")
         
-
     '''
     Create seperate function  due to how multiprocessing works this
     function is required to not interfere with the rest of the function.
@@ -133,7 +135,6 @@ class ScreenCollection():
      names.
     '''
     def getImage(self,x,y,button,pressed):
-        print("ran")
         if pressed == False:
             return
         if self.ended:
@@ -143,6 +144,10 @@ class ScreenCollection():
                 image = sct.grab(self.areagrab)
                 ms.tools.to_png(image.rgb, image.size, output=f"{self.filelocation}\{self.imageNumber}.png")
                 self.imageNumber+=1
+            
+            #Normalise values
+            x = (x - self.area[0]) / self.width
+            y = (y - self.area[1]) / self.height
             
             if button == Button.left:
                 self.inputs.append([[x,y],"left"])
@@ -155,10 +160,8 @@ class ScreenCollection():
     '''
     def withinArea(self, x,y):
         if x > self.area[0] and x < self.area[2] and y > self.area[1] and y < self.area[3]:
-            print("within area")
             return True
         else:
-            print("not within")
             return False
     
     '''
