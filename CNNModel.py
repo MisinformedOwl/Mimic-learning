@@ -25,6 +25,7 @@ class CNNModel(nn.Module):
     criterion = nn.MSELoss()
     batchsize = 8
     learningRate = 0.01
+    testsize = 20 # in %
     def __init__(self):
         super().__init__()
         '''
@@ -43,10 +44,10 @@ class CNNModel(nn.Module):
         
         self.flatten = nn.Flatten()                  #128 x 128 x 1 = 
         
-        self.lin1 = nn.Linear(31360, 256)            #124x124x1 = 15,376
-        self.drop1 = nn.Dropout(0.7)
-        self.lin2 = nn.Linear(256, 128)
-        self.lin3 = nn.Linear(128, 32)               #Gradually reduce neurons until we reach 2, the cordinates.
+        self.lin1 = nn.Linear(31360, 1024)            #124x124x1 = 15,376
+        self.drop1 = nn.Dropout(0.5)
+        self.lin2 = nn.Linear(1024, 256)
+        self.lin3 = nn.Linear(256, 32)               #Gradually reduce neurons until we reach 2, the cordinates.
         self.lin4 = nn.Linear(32, 16)
         self.lin5 = nn.Linear(16, 8)
         self.lin6 = nn.Linear(8, 4)
@@ -103,7 +104,7 @@ class CNNModel(nn.Module):
     '''
     Grabs the data from file and puts it into a dataloader for use in the model.
     '''
-    def grabData(self, datafolder, resizeData=True):
+    def grabData(self, datafolder, resizeData=True, test = False):
         if datafolder == None:
             name = input("Name of the application being used: ")
             self.location = f"data/{name}"
@@ -111,15 +112,27 @@ class CNNModel(nn.Module):
             self.location = f"data/{datafolder}"
         if not os.path.isdir(self.location):
             raise FileNotFoundError
-        #Grabbing images.
-        mn = 0 # min of image will always be 0
-        mx = 255 # min will always be 255
+        
+        mn = 0
+        mx = 255
         images = glob.glob(f"{self.location}/*.png")
         
         
         #Grabbing user inputs and locations.
         with open(f"{self.location}/inputs.pkl", "rb") as file:
             inputs = pickle.load(file)
+        
+        initialSize = len(inputs)
+        testIndex = round(len(inputs)/100)*self.testsize
+        if test:
+            inputs = inputs[:testIndex]
+            images = images[:testIndex]
+        else:
+            inputs = inputs[testIndex:]
+            images = images[testIndex:]
+        
+        assert initialSize > len(inputs)
+        
         
         data = []
         normalizer = transforms.Normalize(mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5])
@@ -145,7 +158,7 @@ class CNNModel(nn.Module):
     grad required.]
     '''
     def learn(self, epochs, location=None):
-        trainloader = self.grabData(location, True)
+        trainloader = self.grabData(location, True, False)
         self.train()
         for epoch in tqdm(range(epochs)):
             runningloss = 0
@@ -175,14 +188,13 @@ class CNNModel(nn.Module):
     '''
     Used to test the model. Similar to train function. Might change.
     '''
-    def accuracy(self):
-        loader = self.grabData()
-        self.test()
+    def accuracy(self, location=None):
+        loader = self.grabData(location, True, True)
+        self.eval()
         runningloss = 0
         for image, cords, button in loader:
-            self.optimizer.zero_grad()
             y_pred = self(image)
+            print(y_pred)
             loss = self.criterion(y_pred, cords)
-            self.optimizer.step()
             runningloss += loss.item()
         return runningloss
