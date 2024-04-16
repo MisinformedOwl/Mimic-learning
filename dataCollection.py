@@ -159,7 +159,7 @@ class ScreenCollection():
     screenshot.
     '''
     def withinArea(self, x,y):
-        if x > self.area[0] and x < self.area[2] and y > self.area[1] and y < self.area[3]:
+        if x > self.area[0] and x < self.area[2] and y > self.area[1] and y < self.area[3]:1q
             return True
         else:
             return False
