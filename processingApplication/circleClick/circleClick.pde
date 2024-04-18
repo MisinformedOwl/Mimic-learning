@@ -1,5 +1,5 @@
 void setup(){
-  size(500,500);
+  size(600,600);
   background(0);
   fill(255);
 }
@@ -20,6 +20,6 @@ void mouseClicked(){
 
 void draw(){
   background(0);
-  rect(boxX,boxY,boxX+shapeSize,boxY+shapeSize);
+  rect(boxX,boxY,shapeSize,shapeSize);
   ellipse(circleX,circleY,shapeSize,shapeSize);
 }
