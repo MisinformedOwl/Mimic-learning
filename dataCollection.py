@@ -1,4 +1,3 @@
-from subprocess import Popen, PIPE            #Used to run the C program to draw a box to the screen.
 import pynput as iput                       #Used to capture mouse and keyboard inputs.
 from pynput.mouse import Button, Listener   
 import threading                            #Used for multiprocessing/threading.
@@ -9,7 +8,7 @@ import keyboard                             #Used to wait until kill key is pres
 import sys
 import psutil
 import pickle
-import signal
+import boxDrawer
 
 #%%
 
@@ -93,29 +92,6 @@ class ScreenCollection():
             self.width = self.area[2] - self.area[0]
             self.height = self.area[3] - self.area[1]
             self.boxlistener.stop()
-
-    '''
-    This function is used to neatly flatten the area array into 4 variables.
-    Also transforms them into strings for use in console applications like 
-    drawBox
-    '''
-    def areaUnpack(self):
-        return [str(a) for a in self.area]
-    
-    '''
-    Function responcible for running the C program. it starts a seperate 
-    process
-    
-    The C program is passed the nesicery cordinates to draw the box.
-    
-    Then the collection process is finished, triggering a keyboard interrupt
-    with ctrl + c will end the process.
-    '''
-    def drawBox(self):
-        x1,y1,x2,y2 = self.areaUnpack()
-        self.process = Popen(['Screen Writer\Screen Writer.exe', x1, y1, x2, y2], shell = False)
-        self.process.wait()
-        print("drawer ended")
         
     '''
     Create seperate function  due to how multiprocessing works this
@@ -170,16 +146,17 @@ class ScreenCollection():
     def saveInputs(self):
         with open(f"{self.filelocation}\inputs.pkl", "wb") as file:
             pickle.dump(self.inputs, file)
+        with open(f"{self.filelocation}\\area.txt", "w") as file:
+            file.writelines(f"{self.area[0]} {self.area[1]} {self.area[2]} {self.area[3]}")
     
     '''
     Function responcible for managing image collection threads.
     '''
     def collectimages(self):
-        boxDrawThread = threading.Thread(target=self.drawBox, daemon=True)
+        box = boxDrawer.ScreenDraw(self.area)
         mouseListenerThread = threading.Thread(target=self.getImageListener, daemon=True)
-        boxDrawThread.start()
         mouseListenerThread.start()
         keyboard.wait("q")
         self.ended = True
-        self.process.send_signal(signal.SIGTERM)
         self.saveInputs()
+        box.end()

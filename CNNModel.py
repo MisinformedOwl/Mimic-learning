@@ -17,6 +17,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import sys
 import keyboard
+from mss import mss                         #Reused library. turn into own module?
+import boxDrawer
+import mouse
+import keyboard
+import time
 
 '''
 CNNModel class will hold the CNN.
@@ -65,8 +70,6 @@ class CNNModel(nn.Module):
         self.layer5 = nn.Conv2d(10, 10, kernel_size=3, padding=1) #[256,256,10]->[256,256,20]
         self.layer6 = nn.Conv2d(10, 10, kernel_size=3, padding=1) #[256,256,10]->[256,256,20]
         
-        self.norm = nn.BatchNorm2d(10)
-        
         self.flatten = nn.Flatten()
         
         self.lin1 = nn.Linear(40960, 2048)            #124x124x1 = 15,376
@@ -81,15 +84,12 @@ class CNNModel(nn.Module):
     add rule based learning which i am planning on doing.
     '''
     def forward(self, x):
-        s = []
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
         x = self.layer4(x)
         x = F.relu(self.layer5(x))
         x = F.relu(self.layer6(x))
-        
-        x = self.norm(x)
         
         x = self.flatten(x)
         
@@ -124,6 +124,8 @@ class CNNModel(nn.Module):
         images = glob.glob(f"{self.location}/*.png")
         images = sorted(images, key = len)
         
+        with open(f"{self.location}/area.txt", "r") as file:
+            self.area = [int(a) for a in file.readlines()[0].split(" ")]
         
         #Grabbing user inputs and locations.
         with open(f"{self.location}/inputs.pkl", "rb") as file:
@@ -140,7 +142,6 @@ class CNNModel(nn.Module):
         
         assert initialSize > len(inputs)
         
-        
         data = []
         if resizeData: #If the data is being resized to 512
             for image, i in zip(images, inputs):
@@ -148,13 +149,17 @@ class CNNModel(nn.Module):
                 image = image /255
                 image = image.round(4)
                 assert (image > 1).sum() == 0
-                data.append([torch.tensor(np.transpose(resize(image, (128, 128), INTER_AREA), (2,0,1)), dtype=torch.float).to(self.device), torch.tensor(i[0]).to(self.device), i[1]])
+                image = self.preprocessImage(image)
+                data.append([image, torch.tensor(i[0]).to(self.device), i[1]])
         else:
             for image, i in zip(images, inputs):
                 data.append([torch.tensor(np.transpose(imread(image), (2,0,1)), dtype=torch.float).to(self.device), torch.tensor(i[0]).to(self.device), i[1]])
         
         del images, image, i, initialSize, testIndex, inputs
         return DataLoader(data, batch_size=self.batchsize, shuffle=False)
+
+    def preprocessImage(self, image):
+        return torch.tensor(np.transpose(resize(image, (128, 128), INTER_AREA), (2,0,1)), dtype=torch.float).to(self.device)
 
     '''
     Train function used for training the model.
@@ -192,6 +197,12 @@ class CNNModel(nn.Module):
         plt.plot(self.history)
 
     '''
+    Sets the dictionary based off of area.
+    '''
+    def setBoxArea(self, area): #Repeat code. fix it.
+        return {"left": area[0], "top": area[1], "width": area[2]-area[0], "height":area[3]-area[1]} 
+
+    '''
     Checks to see if the model is currently training.
     No idea what i'm actually going to use this for yet, might get removed. Fels like a good idea at the time.
     '''
@@ -221,3 +232,30 @@ class CNNModel(nn.Module):
         del loader, image, cords, button, y_pred, loss
         torch.cuda.empty_cache()
         return runningloss
+    
+    def interactWithScreen(self, cords, button):
+        print(cords)
+        mouse.move(cords[0], cords[1])
+        if button == "Lclick":
+            mouse.click()
+        if button == "Rclick":
+            mouse.right_click()
+    
+    def liveTest(self):
+        imageArea = self.setBoxArea(self.area)
+        box = boxDrawer.ScreenDraw(self.area)
+        input("Place content in red zone and hit enter.")
+        timestop = 0
+        while timestop < 10:
+            with mss() as sct:
+                timestop+=1
+                image = np.array(sct.grab(imageArea))[:,:,:3] #Repeat code. find a way to fix it
+                image = self.preprocessImage(image)
+                image = image.unsqueeze(0)
+                width, height = image.shape[1], image.shape[2]
+            cords = self(image)
+            print(cords)
+            cords[0][0],cords[0][1] = cords[0][1]+imageArea.get("left"), cords[0][1]+imageArea.get("top")
+            self.interactWithScreen(cords[0], "Lclick")
+            time.sleep(3)
+        box.end()
