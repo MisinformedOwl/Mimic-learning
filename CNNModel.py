@@ -23,22 +23,25 @@ import mouse
 import keyboard
 import time
 
-'''
-CNNModel class will hold the CNN.
-We call nn.Module to make use of torch's pre built features and backprop.
-'''
+
 class CNNModel(nn.Module):
+    '''
+    CNNModel class will hold the CNN.
+    
+    Parameters: 
+        nn.Module: A class which contains all nesicery functions to create a neural network.
+    '''
     history = []
     criterion = nn.MSELoss()
     batchsize = 16
     learningRate = 0.01
     testsize = 10 # in %
     def __init__(self):
-        super().__init__()
         '''
         We begin with 512 as it's not too small to not capture detail. However 
         it is also not big enough to cause issues in memory.
         '''
+        super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(self.device)
         self.to(self.device)
@@ -59,10 +62,11 @@ class CNNModel(nn.Module):
         
         self.optimizer = optim.SGD(self.parameters(), lr = self.learningRate, momentum=0.9) #It is unable to see parameters therefore must be established here.
     
-    '''
-    Makes a simple version of the model.
-    '''
+    
     def _SimpleModel(self):
+        '''
+        Makes a simple version of the model. Which does not have many layers.
+        '''
         self.layer1 = nn.Conv2d(3, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
         self.layer2 = nn.Conv2d(10, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
         self.layer3 = nn.Conv2d(10, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
@@ -77,13 +81,20 @@ class CNNModel(nn.Module):
         self.lin2 = nn.Linear(2048, 256)
         self.lin3 = nn.Linear(256, 2)
     
-    '''
-    This function is what is activated when actually training/testing the AI.
-    This is a useful tool in torch, as it allows me to intercept hidden layer
-    and add extra functionality, like checking the shape of the data or even
-    add rule based learning which i am planning on doing.
-    '''
+    
     def forward(self, x):
+        '''
+        This function is what is activated when actually training/testing the AI.
+        This is a useful tool in torch, as it allows me to intercept hidden layer
+        and add extra functionality, like checking the shape of the data or even
+        add rule based learning which i am planning on doing.
+        
+        Parameters:
+            x (tensor): The images being passed in shape [batchSize, channels, width, height]
+        
+        returns:
+            Tensor list: Of normalized predicted cordinates
+        '''
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
@@ -100,19 +111,32 @@ class CNNModel(nn.Module):
         
         return x
     
-    '''
-    This method is used to create and render an image of the current neural 
-    network should the user desire.
-    '''
+    
     def displayCNN(self, x):
+        '''
+        This method is used to create and render an image of the current neural 
+        network should the user desire.
+        
+        Parameters:
+            x (CNNModel): the model
+        '''
         viz(x, params=dict(list(self.named_parameters()))).render("cnn_viz", format="png")
     
-    '''
-    Grabs the data from file and puts it into a dataloader for use in the model.
     
-    [This needs reworked to be better.]
-    '''
     def grabData(self, datafolder, resizeData=True, test = False):
+        '''
+        Grabs the data from file and puts it into a dataloader for use in the model.
+        
+        [This needs reworked to be better.]
+        
+        Parameters:
+            datafolder (String): Containing the folder name. being taken from
+            resizeData (bool): Is the data in question being resized?
+            test (bool): Is this data for use in testing? if not. use training data.
+            
+        return:
+            DataLoader: The specialised tool used for batch loading in torch.
+        '''
         if datafolder == None:
             name = input("Name of the application being used: ")
             self.location = f"data/{name}"
@@ -159,14 +183,29 @@ class CNNModel(nn.Module):
         return DataLoader(data, batch_size=self.batchsize, shuffle=False)
 
     def preprocessImage(self, image):
+        '''
+        Preprocesses the image resizing the image and changing it's data type to 
+        float to suit the model's requirements
+        
+        Parameters:
+            image (numpy array): The image being worked on
+        
+        Return:
+            Tensor: Of the image fully preprocessed.
+        '''
         return torch.tensor(np.transpose(resize(image, (128, 128), INTER_AREA), (2,0,1)), dtype=torch.float).to(self.device)
 
-    '''
-    Train function used for training the model.
-    
-    Main difference is the model is set to train mode.
-    '''
     def learn(self, epochs, location=None):
+        '''
+        Train function used for training the model.
+        
+        Parameters:
+            epochs (int): The amount of times the AI will train on the same training data.
+            location (String): The location of the data which will be trained on.
+        
+        Return:
+            float: The overall loss of the model during training.
+        '''
         trainloader = self.grabData(location, True, False)
         self.train()
         for epoch in tqdm(range(epochs)):
@@ -190,29 +229,32 @@ class CNNModel(nn.Module):
         cord = torch.tensor([[cord[0]*width-10, cord[1]*height-10, cord[0]*width+10, cord[1]*height+10]])
         return image, cord
     
-    '''
-    Graphs the model's history
-    '''
     def graph(self):
+        '''
+        Graphs the model's history
+        '''
         plt.plot(self.history)
 
-    '''
-    Sets the dictionary based off of area.
-    '''
     def setBoxArea(self, area): #Repeat code. fix it.
+        '''
+        Sets the dictionary based off of area.
+        
+        Return:
+            dict: Containing cordinates and size of the box to be drawn on screen.
+        '''
         return {"left": area[0], "top": area[1], "width": area[2]-area[0], "height":area[3]-area[1]} 
-
-    '''
-    Checks to see if the model is currently training.
-    No idea what i'm actually going to use this for yet, might get removed. Fels like a good idea at the time.
-    '''
-    def isTraining(self):
-        return self.training
     
-    '''
-    Used to test the model. Similar to train function. Might change.
-    '''
     def accuracy(self, location=None):
+        '''
+        Used to test the model. Similar to train function. Might change.
+        This would be called testing however this clashes with existing nn.Modules methods.
+        
+        Parameter:
+            location (String): The location of the folder being used.
+            
+        Return:
+            float: The overall loss of the model during testing.
+        '''
         loader = self.grabData(location, True, True)
         self.eval()
         runningloss = 0
@@ -234,6 +276,13 @@ class CNNModel(nn.Module):
         return runningloss
     
     def interactWithScreen(self, cords, button):
+        '''
+        This method is responcible for the models ability to interact with the screen.
+        
+        Parameters:
+            cords ([int,int]): Contains the cordiantes of the mouse to be moved to.
+            button (String): Contains the letter or mouse click to be used.
+        '''
         print(cords)
         mouse.move(cords[0], cords[1])
         if button == "Lclick":
@@ -242,6 +291,12 @@ class CNNModel(nn.Module):
             mouse.right_click()
     
     def liveTest(self):
+        '''
+        This method is used in live testing. The original cordinates used in 
+        the dataCollection.py process with be collected and a box is drawn on 
+        screen. The user is given a chance to setup before the model will begin 
+        collecting images and predicting what action should be taken.
+        '''
         imageArea = self.setBoxArea(self.area)
         box = boxDrawer.ScreenDraw(self.area)
         input("Place content in red zone and hit enter.")

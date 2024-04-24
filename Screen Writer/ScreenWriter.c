@@ -4,12 +4,24 @@
 #include <stdio.h>
 #include <signal.h>
 
+/**
+ * Recieves and handles signals sent by boxDrawer.py
+ *
+ * @param signal The signal being handled. (Primerily termination signal.)
+ */
 void signal_handler(int, signal){
 	if (signal==SIGTERM) {
 		exit(0);
 	}
 }
 
+/**
+ * The meat of the application.
+ * This just takes the cordinates given, and endlessly draws a rectangle
+ *
+ * @param argc Amount of arguments
+ * @param argv List of sent parameters
+ */
 int main(int argc, char* argv[]) {
 	signal(SIGTERM, signal_handler);
 	for (int i = 0; i < argc; i++){
