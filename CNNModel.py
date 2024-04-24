@@ -31,7 +31,7 @@ class CNNModel(nn.Module):
     history = []
     criterion = nn.MSELoss()
     batchsize = 16
-    learningRate = 0.001
+    learningRate = 0.01
     testsize = 10 # in %
     def __init__(self):
         super().__init__()
@@ -222,7 +222,7 @@ class CNNModel(nn.Module):
             loss = self.criterion(y_pred, cords)
             runningloss += loss.item()
             for y in range(len(y_pred)):
-                img, box = self.denormalise(image[y], cords[y])
+                img, box = self.denormalise(image[y], y_pred[y])
                 img=draw_bounding_boxes(img, box, width=2, colors=(255,0,0))
                 img = img.permute(1, 2, 0).cpu().numpy()
                 plt.figure(figsize=(8, 8))
