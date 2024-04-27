@@ -33,8 +33,9 @@ class CNNModel(nn.Module):
     '''
     history = []
     criterion = nn.MSELoss()
-    batchsize = 16
-    learningRate = 0.01
+    batchsize = 8
+    learningRate = 0.001
+    varyingLearningRate = [0.01,0.001,0.0001]
     testsize = 10 # in %
     def __init__(self):
         '''
@@ -60,27 +61,27 @@ class CNNModel(nn.Module):
             if isinstance(m, (nn.Conv2d, nn.Linear)):
                 assert m.weight.sum().item() != 0
         
-        self.optimizer = optim.SGD(self.parameters(), lr = self.learningRate, momentum=0.9) #It is unable to see parameters therefore must be established here.
+        self.optimizer = optim.Adam(self.parameters(), lr = self.learningRate) #It is unable to see parameters therefore must be established here.
     
     
     def _SimpleModel(self):
         '''
         Makes a simple version of the model. Which does not have many layers.
         '''
-        self.layer1 = nn.Conv2d(3, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
-        self.layer2 = nn.Conv2d(10, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
-        self.layer3 = nn.Conv2d(10, 10, kernel_size=3, padding=1) # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
-        self.layer4 = nn.MaxPool2d(2,2)              #Maxpool halves the size of the image. Image is now [256,256,10]
-        self.layer5 = nn.Conv2d(10, 10, kernel_size=3, padding=1) #[256,256,10]->[256,256,20]
-        self.layer6 = nn.Conv2d(10, 10, kernel_size=3, padding=1) #[256,256,10]->[256,256,20]
+        self.layer1 = nn.Conv2d(3, 4, kernel_size=3, padding=1)               # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
+        self.layer2 = nn.Conv2d(4, 8, kernel_size=3, padding=1)              # Collecting image of [512,512,3] and colecting featuresto create a matrix of [512,512,10]
+        self.layer3 = nn.MaxPool2d(2,2)                                        #Maxpool halves the size of the image. Image is now [256,256,10]
+        self.layer4 = nn.Conv2d(8, 8, kernel_size=3, padding=1)              #Collecting image of [512,512,3] and colecting featuresto create a matrix of [256,256,10]
+        self.layer5 = nn.MaxPool2d(2,2)                                        #Maxpool halves the size of the image. Image is now [128,128,10]
+        self.layer6 = nn.Conv2d(8, 10, kernel_size=3, padding=1)              #[128,128,10]->[128,128,20]
+        self.layer7 = nn.Conv2d(10, 10, kernel_size=3, padding=1)              #[128,128,10]->[128,128,20]
         
         self.flatten = nn.Flatten()
         
-        self.lin1 = nn.Linear(40960, 2048)            #124x124x1 = 15,376
-        self.drop1 = nn.Dropout(0.5)
-        self.lin2 = nn.Linear(2048, 256)
-        self.lin3 = nn.Linear(256, 2)
-    
+        self.lin1 = nn.Linear(10240, 5120)            #124x124x1 = 15,376
+        self.lin2 = nn.Linear(5120, 1024)            #124x124x1 = 15,376
+        self.lin3 = nn.Linear(1024, 32)            #124x124x1 = 15,376
+        self.lin4 = nn.Linear(32, 2)
     
     def forward(self, x):
         '''
@@ -97,17 +98,18 @@ class CNNModel(nn.Module):
         '''
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
-        x = self.layer4(x)
-        x = F.relu(self.layer5(x))
+        x = self.layer3(x)
+        x = F.relu(self.layer4(x))
+        x = self.layer5(x)
         x = F.relu(self.layer6(x))
+        x = F.relu(self.layer7(x))
         
         x = self.flatten(x)
         
         x = F.relu(self.lin1(x))
-        x = self.drop1(x)
         x = F.relu(self.lin2(x))
-        x = self.lin3(x)
+        x = F.relu(self.lin3(x))
+        x = self.lin4(x)
         
         return x
     
@@ -314,3 +316,8 @@ class CNNModel(nn.Module):
             self.interactWithScreen(cords[0], "Lclick")
             time.sleep(3)
         box.end()
+
+model = CNNModel()
+
+print(model.learn(50, "circle"))
+print(model.accuracy("circle"))
