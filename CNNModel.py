@@ -60,10 +60,10 @@ class CNNModel(nn.Module):
         for m in self.modules():
             if isinstance(m, (nn.Conv2d, nn.Linear)):
                 assert m.weight.sum().item() != 0
-        
-        self.optimizer = optim.Adam(self.parameters(), lr = self.learningRate) #It is unable to see parameters therefore must be established here.
+
+        self.optimizer = optim.Adam(self.parameters(), lr = self.learningRate)        
     
-    
+
     def _SimpleModel(self):
         '''
         Makes a simple version of the model. Which does not have many layers.
@@ -291,6 +291,9 @@ class CNNModel(nn.Module):
             mouse.click()
         if button == "Rclick":
             mouse.right_click()
+    
+    def updateLR(self, index):
+        self.optimizer = optim.Adam(self.parameters(), lr = self.learningRate)
     
     def liveTest(self):
         '''
