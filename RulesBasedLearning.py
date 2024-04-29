@@ -117,6 +117,10 @@ class RulesBased():
         '''
         when initialising the rules for the first time the Rules class is passed 
         a list of unique chacaters that appear during data collection.
+        
+        Parameters:
+            actions (Set): A set of unique actions which the user has performed.
+            locations int
         '''
         self.rules = Rules(actions)
         self.previousAction = actions[0]

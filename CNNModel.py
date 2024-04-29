@@ -22,6 +22,7 @@ import boxDrawer
 import mouse
 import keyboard
 import time
+from RulesBasedLearning import RulesBased as RBL
 
 
 class CNNModel(nn.Module):
@@ -137,7 +138,7 @@ class CNNModel(nn.Module):
             test (bool): Is this data for use in testing? if not. use training data.
             
         return:
-            DataLoader: The specialised tool used for batch loading in torch.
+            DataLoader, Set: The specialised tool used for batch loading in torch. and a set of unique characters
         '''
         if datafolder == None:
             name = input("Name of the application being used: ")
@@ -156,6 +157,8 @@ class CNNModel(nn.Module):
         #Grabbing user inputs and locations.
         with open(f"{self.location}/inputs.pkl", "rb") as file:
             inputs = pickle.load(file)
+        
+        unique = list(set(l for _, l in inputs))
         
         initialSize = len(inputs)
         testIndex = round((len(inputs)/100)*self.testsize)
@@ -182,7 +185,7 @@ class CNNModel(nn.Module):
                 data.append([torch.tensor(np.transpose(imread(image), (2,0,1)), dtype=torch.float).to(self.device), torch.tensor(i[0]).to(self.device), i[1]])
         
         del images, image, i, initialSize, testIndex, inputs
-        return DataLoader(data, batch_size=self.batchsize, shuffle=False)
+        return DataLoader(data, batch_size=self.batchsize, shuffle=False), unique
 
     def preprocessImage(self, image):
         '''
@@ -197,6 +200,15 @@ class CNNModel(nn.Module):
         '''
         return torch.tensor(np.transpose(resize(image, (128, 128), INTER_AREA), (2,0,1)), dtype=torch.float).to(self.device)
 
+    def createRules(self, unique):
+        '''
+        Creates the rule based learning for the model.
+        
+        Parameters:
+            unique (set): A set of unique actions that were displayed during data capturing.
+        '''
+        self.rules = RBL(unique, 20)
+
     def learn(self, epochs, location=None):
         '''
         Train function used for training the model.
@@ -208,7 +220,8 @@ class CNNModel(nn.Module):
         Return:
             float: The overall loss of the model during training.
         '''
-        trainloader = self.grabData(location, True, False)
+        trainloader, unique = self.grabData(location, True, False)
+        self.createRules(unique)
         self.train()
         for epoch in tqdm(range(epochs)):
             runningloss = 0
@@ -225,6 +238,18 @@ class CNNModel(nn.Module):
         return runningloss
     
     def denormalise(self, image, cord):
+        '''
+        Returns the image to it's original sizes and changes model output into 
+        a position on the image between 0 and width/height
+        AKA, reverts normalisation
+        
+        Parameters:
+            image (tensor): The image to be denormalized
+            cord ([int,int]): The output of the model
+            
+        Return:
+            tensor, [int,int]: Denormalised inputs
+        '''
         image= (image*255).to(torch.uint8)
         width = image.shape[1]
         height = image.shape[2]
@@ -257,7 +282,7 @@ class CNNModel(nn.Module):
         Return:
             float: The overall loss of the model during testing.
         '''
-        loader = self.grabData(location, True, True)
+        loader, _ = self.grabData(location, True, True)
         self.eval()
         runningloss = 0
         count = 0
@@ -279,7 +304,7 @@ class CNNModel(nn.Module):
     
     def interactWithScreen(self, cords, button):
         '''
-        This method is responcible for the models ability to interact with the screen.
+        This method is responsible for the models ability to interact with the screen.
         
         Parameters:
             cords ([int,int]): Contains the cordiantes of the mouse to be moved to.
@@ -293,6 +318,12 @@ class CNNModel(nn.Module):
             mouse.right_click()
     
     def updateLR(self, index):
+        '''
+        Updates the learningrate for dynamic training [Not yet used]
+        
+        Parameters:
+            index (int): The index of the requested training rate in varyingLearningRate
+        '''
         self.optimizer = optim.Adam(self.parameters(), lr = self.learningRate)
     
     def liveTest(self):
