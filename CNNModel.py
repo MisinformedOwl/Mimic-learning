@@ -232,6 +232,7 @@ class CNNModel(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 runningloss += loss.item()/self.batchsize
+                self.rules.weightTrain(y_pred, button)
             self.history.append(runningloss)
         del trainloader, image, cords, button, y_pred, loss
         torch.cuda.empty_cache()
@@ -292,6 +293,7 @@ class CNNModel(nn.Module):
             runningloss += loss.item()
             for y in range(len(y_pred)):
                 img, box = self.denormalise(image[y], y_pred[y])
+                self.rules.checkRules(y_pred)
                 img=draw_bounding_boxes(img, box, width=2, colors=(255,0,0))
                 img = img.permute(1, 2, 0).cpu().numpy()
                 plt.figure(figsize=(8, 8))
@@ -353,5 +355,5 @@ class CNNModel(nn.Module):
 
 model = CNNModel()
 
-print(model.learn(50, "circle"))
-print(model.accuracy("circle"))
+print(model.learn(50, "keyboard"))
+print(model.accuracy("keyboard"))

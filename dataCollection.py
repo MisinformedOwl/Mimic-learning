@@ -159,7 +159,6 @@ class ScreenCollection():
         if self.withinArea(x,y):
             self.saveImage()
             self.imageNumber+=1
-            print("thing")
             
             #Normalise values
             x,y = self.Normalise(x,y)
@@ -183,11 +182,10 @@ class ScreenCollection():
         if self.withinArea(x,y):
             self.saveImage()
             self.imageNumber+=1
-            print("thing")
             
             x,y = self.Normalise(x,y)
             
-            self.inputs.append([[x,y], key])
+            self.inputs.append([[x,y], key.char])
 
     def withinArea(self, x,y):
         '''

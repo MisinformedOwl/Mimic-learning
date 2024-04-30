@@ -1,3 +1,5 @@
+from torch import round as rounding
+
 #                    COLLECTION OF RULES
 class Rules():
     '''
@@ -6,20 +8,21 @@ class Rules():
     '''
     rules = {} #Action : rules
     
-    cordinates = [(x,y) for x in range(32) for y in range(32)]
     
-    def __init__(self, actions):
+    def __init__(self, actions, cords):
         '''
         Creates rules for all possible combinations.
         
         Parameters:
             actions (list): of all possible actions recorded in dataCollection.py
+            cords (int): Number of segments of the image to be used. Evently distributed.
         '''
+        
+        self.cordinates = [(x,y) for x in range(cords) for y in range(cords)]
         for a in actions:
-            rulelist = []
+            rulelist = {}
             for c in self.cordinates:
-                for a2 in actions:
-                    rulelist.append(self.createRule(a, c, a2))
+                rulelist.update({str(c) : [self.createRule(a, c, a2) for a2 in actions]})
             self.rules.update({a : rulelist})
     
     def createRule(self, previous, cordinates, action):
@@ -52,15 +55,21 @@ class Rules():
         
         Parameters:
             previous (string): The previous action taken
-            cords ([int, int]): The cordinates of the action being taken now.
+            cords ((int, int)): The cordinates of the action being taken now.
         
         Return:
             Rule: The rule matching the description.
         '''
-        rules = self.rules.get(previous)
-        for r in rules:
-            if r.cordinates == cords:
-                return r
+        print(cords)
+        maxWeight = -99
+        maxindex = 0
+        rules = self.rules.get(previous).get(str(cords))
+        for r in range(len(rules)):
+            if rules[r].weight > maxWeight:
+                maxWeight = rules[r].weight
+                maxindex = r
+        return rules[maxindex]
+                
 
 #%%                INDIVIDUAL RULES
 class Rule():
@@ -79,7 +88,7 @@ class Rule():
         
         Parameters:
             prev (string): The previous action made
-            cords ([int,int]): the location of the action
+            cords ((int,int)): the location of the action
             action (string): The action that will be taken should this rule be selected.
         '''
         self.cordinates = cords
@@ -122,7 +131,7 @@ class RulesBased():
             actions (Set): A set of unique actions which the user has performed.
             locations int
         '''
-        self.rules = Rules(actions)
+        self.rules = Rules(actions, 8)
         self.previousAction = actions[0]
         self.locations = locations
         
@@ -147,37 +156,42 @@ class RulesBased():
         Return:
             Tuple: containing small integers pointing to a sector of the image.
         '''
-        return (round(location[0]*self.locations), round(location[1]*self.locations))
+        return (int(rounding(location[0]*self.locations, decimals=0).item()), int(rounding(location[1]*self.locations, decimals=0).item()))
     
-    def weightTrain(self, location, actionUsed, label): #update weights based on correctness.
+    def weightTrain(self, location, label): #update weights based on correctness.
         '''
         This tests to see if the rule collected is correct by matching it to the expected button given in CNNModel.py's training data
         
         Parameters:
-            location ([float],[float]): The location predicted by the CNNModel
-            actionUsed (String): The action that was used previously. ; look into this.
-            label (String): the expected action.
+            location ([[float, float],...]): The location predicted by the CNNModel
+            label ([String]): the expected action.
         '''
-        location = self.decipherLocation(location)
-        rule = self.getRules(location)
-        if rule.actionUser == label:
-            self.rules.updateRuleList(rule, 1)
-        else:
-            self.rules.updateRuleList(rule, -1)
+        for l, lab in zip(location,label):
+            loc = self.decipherLocation(l)
+            rule = self.getRules(loc)
+            if rule.action == lab:
+                self.rules.updateRuleList(rule, 1)
+            else:
+                self.rules.updateRuleList(rule, -1)
+        
+            self.previousAction = rule.action
+            return rule.action
     
-        self.previousAction = actionUsed
-    
-    def checkRules(self,location, actionUsed): #used to see which rule should be used. So no updating
+    def checkRules(self,location): #used to see which rule should be used. So no updating
         '''
         This is the version used when not training. So the rules are not updated if incorrect.
         
         Parameters:
-            location ([float,float]): the predicted location by the AI.
+            location ([[float,float],...]): the predicted location by the AI.
             actionUsed (String): The action that is used ; Again look into this, i dont see what the purpose of this is.
         '''
-        location = self.decipherLocation(location)
-        self.previousAction = actionUsed
-        return self.getRules(location).weight
+        for l in location:
+            location = self.decipherLocation(l)
+            
+            rule = self.getRules(location)
+            
+            self.previousAction = rule.action
+        return rule.action
         
     def getPreviousAction(self):
         '''
