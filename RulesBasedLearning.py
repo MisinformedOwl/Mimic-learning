@@ -121,6 +121,8 @@ class RulesBased():
     '''
     previousAction = ""
     locations = 0
+    success=0
+    fail = 0
     
     def __init__(self, actions, locations):
         '''
@@ -131,7 +133,7 @@ class RulesBased():
             actions (Set): A set of unique actions which the user has performed.
             locations int
         '''
-        self.rules = Rules(actions, 8)
+        self.rules = Rules(actions, locations+1)
         self.previousAction = actions[0]
         self.locations = locations
         
@@ -156,7 +158,7 @@ class RulesBased():
         Return:
             Tuple: containing small integers pointing to a sector of the image.
         '''
-        return (int(rounding(location[0]*self.locations, decimals=0).item()), int(rounding(location[1]*self.locations, decimals=0).item()))
+        return (int(rounding(location[0]*self.locations, decimals=0).clamp(min=0, max =self.locations).item()), int(rounding(location[1]*self.locations, decimals=0).clamp(min=0, max =self.locations).item()))
     
     def weightTrain(self, location, label): #update weights based on correctness.
         '''
@@ -171,11 +173,14 @@ class RulesBased():
             rule = self.getRules(loc)
             if rule.action == lab:
                 self.rules.updateRuleList(rule, 1)
+                self.success +=1
             else:
                 self.rules.updateRuleList(rule, -1)
+                self.fail +=1
+            print(rule.action, lab, rule.action == lab)
         
             self.previousAction = rule.action
-            return rule.action
+        return rule.action
     
     def checkRules(self,location): #used to see which rule should be used. So no updating
         '''
@@ -201,3 +206,12 @@ class RulesBased():
             String: the previous action used.
         '''
         return self.previousAction
+    
+    def accuracy(self):
+        '''
+        Returns the overall accuracy of the model so far.
+        
+        Returns:
+            float: The accuracy xx.x%
+        '''
+        return (self.success/self.fail)*100

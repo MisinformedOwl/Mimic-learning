@@ -112,6 +112,7 @@ class CNNModel(nn.Module):
         x = F.relu(self.lin3(x))
         x = self.lin4(x)
         
+        
         return x
     
     
@@ -302,6 +303,7 @@ class CNNModel(nn.Module):
                 plt.show()
         del loader, image, cords, button, y_pred, loss
         torch.cuda.empty_cache()
+        print(self.rules.accuracy())
         return runningloss
     
     def interactWithScreen(self, cords, button):
@@ -312,7 +314,6 @@ class CNNModel(nn.Module):
             cords ([int,int]): Contains the cordiantes of the mouse to be moved to.
             button (String): Contains the letter or mouse click to be used.
         '''
-        print(cords)
         mouse.move(cords[0], cords[1])
         if button == "Lclick":
             mouse.click()
@@ -347,7 +348,6 @@ class CNNModel(nn.Module):
                 image = image.unsqueeze(0)
                 width, height = image.shape[1], image.shape[2]
             cords = self(image)
-            print(cords)
             cords[0][0],cords[0][1] = cords[0][1]+imageArea.get("left"), cords[0][1]+imageArea.get("top")
             self.interactWithScreen(cords[0], "Lclick")
             time.sleep(3)
