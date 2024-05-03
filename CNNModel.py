@@ -349,7 +349,8 @@ class CNNModel(nn.Module):
                 width, height = image.shape[1], image.shape[2]
             cords = self(image)
             cords[0][0],cords[0][1] = cords[0][1]+imageArea.get("left"), cords[0][1]+imageArea.get("top")
-            self.interactWithScreen(cords[0], "Lclick")
+            action = self.rules.checkRules(cords)
+            self.interactWithScreen(cords[0], action)
             time.sleep(3)
         box.end()
 

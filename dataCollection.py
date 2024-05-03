@@ -164,9 +164,9 @@ class ScreenCollection():
             x,y = self.Normalise(x,y)
             
             if button == Button.left:
-                self.inputs.append([[x,y],"left"])
+                self.inputs.append([[x,y],"Lclick"])
             elif button == Button.right:
-                self.inputs.append([[x,y],"right"])
+                self.inputs.append([[x,y],"Rclick"])
     
     def getImageKB(self, key):
         '''
